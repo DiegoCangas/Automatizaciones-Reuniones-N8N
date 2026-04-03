@@ -1,0 +1,453 @@
+{
+  "name": "Generar Resumen Trabajo",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Parte Trabajo",
+        "formDescription": "Generador de parte de trabajo a partir de reunión o documento previo",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "fuente",
+              "fieldType": "file",
+              "multipleFiles": false,
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Plantilla HTML",
+              "fieldType": "file",
+              "multipleFiles": false,
+              "acceptFileTypes": ".html",
+              "requiredField": true
+            }
+          ]
+        },
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        -592,
+        -64
+      ],
+      "id": "bd28c67b-ef95-4639-98d1-5df42fabc833",
+      "name": "On form submission"
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "html_final",
+        "options": {
+          "fileName": "data.html"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        1264,
+        -64
+      ],
+      "id": "ad5395a2-d567-4d5e-be77-16e0038e1d6d",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "jsCode": "for (const item of $input.all()) {\n  const nombreCampoBinario = 'Plantilla_HTML'; \n  if (item.binary && item.binary[nombreCampoBinario]) {\n    const datosBase64 = item.binary[nombreCampoBinario].data;\n    const textoHtml = Buffer.from(datosBase64, 'base64').toString('utf-8');\n    item.json.contenido_html = textoHtml;\n  } else {\n    item.json.contenido_html = \"No se encontró ningún archivo.\";\n  }\n}\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        -64
+      ],
+      "id": "95859923-660f-48aa-9f15-bad43022e859",
+      "name": "Extraer HTML"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-flash-lite-latest",
+          "mode": "list",
+          "cachedResultName": "models/gemini-flash-lite-latest"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=\"Analiza el siguiente texto sobre el estado de un proyecto y extrae la información en formato JSON.\n\nInstrucciones de categorización:\nAnaliza todas las tareas o peticiones mencionadas y agrúpalas en categorías lógicas que tú mismo deduzcas según su naturaleza. Usa títulos claros y profesionales en mayúsculas (por ejemplo: 'BUGS CRÍTICOS Y BLOQUEANTES', 'MEJORAS DE RENDIMIENTO', 'AJUSTES DE JUGABILIDAD', 'UI/UX', etc.).\n\nDevuelve ÚNICAMENTE un objeto JSON con la siguiente estructura exacta:\n\nproyecto (string)\n\nversion_periodo (string)\n\nfecha_revision (string)\n\ncategorias (array de objetos). Cada objeto de categoría debe tener:\n\ntitulo (string, en mayúsculas)\n\ntareas (array de objetos). Cada tarea debe tener descripcion (string) y estado (string: 'hecho', 'revisar', 'pendiente', o 'n/a').\"",
+              "role": "model"
+            },
+            {
+              "content": "={{ $json.fuente[0] }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        592,
+        -64
+      ],
+      "id": "7ce04115-6d93-4778-9387-70e7435b0b2e",
+      "name": "Generar Reporte",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "0FIs6H4Ci27i4Jo9",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "={{ $('ObtenerRutaArchivo').item.json.Path }}{{ $('Reemplazar En Plantilla').item.json.proyecto.trim()}} {{ $now.toFormat('yy-MM-dd') }}.html",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        1424,
+        -64
+      ],
+      "id": "1da989cd-80e7-4bbe-80e6-ec897bedbe2c",
+      "name": "Guardar En Disco"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "fuente",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        -176
+      ],
+      "id": "bda38cf0-0be1-447f-b730-fed8273e72db",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$binary.fuente.fileExtension}}",
+                    "rightValue": "pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "80d70830-cc79-4f88-a304-f99c9fffbc85"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "PDF"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "549bb04f-7aa6-4729-b84d-646649443b18",
+                    "leftValue": "={{$binary.fuente.fileExtension}}",
+                    "rightValue": "html",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "HTML"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -208,
+        -64
+      ],
+      "id": "01b4d15b-58ae-4fcf-af0d-6591eb0490dc",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "fuente",
+              "renameField": true,
+              "outputFieldName": "fuente"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        416,
+        -64
+      ],
+      "id": "3a841a27-f4a7-4207-9f09-694452b31120",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "sourceData": "binary",
+        "dataPropertyName": "fuente",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "fuente",
+              "cssSelector": "body"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        -16,
+        32
+      ],
+      "id": "c3377653-b58d-4dac-bb7e-46c8c385e332",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "87ad565f-2dee-4643-9216-e20ade60e513",
+              "name": "fuente",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        -176
+      ],
+      "id": "9979f495-0277-4280-935e-15495089c707",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "let textoCrudo = $(\"Generar Reporte\").first().json.content.parts[0].text;\ntextoCrudo = textoCrudo.replace(/```json/g, '').replace(/```/g, '').trim();\n\nconst datosIA = JSON.parse(textoCrudo);\nlet plantillaHTML = $(\"Extraer HTML\").first().json.contenido_html;\n\nlet htmlGenerado = \"\";\nif (datosIA.categorias && datosIA.categorias.length > 0) {\n    \n    datosIA.categorias.forEach(categoria => {\n        htmlGenerado += `<h2>${categoria.titulo}</h2>`;\n        htmlGenerado += `\n        <table>\n            <thead>\n                <tr>\n                    <th>ÍTEM DE REVISIÓN</th>\n                    <th>ESTADO</th>\n                    <th>NOTAS / ACCIONES</th>\n                </tr>\n            </thead>\n            <tbody>\n        `;\n        categoria.tareas.forEach(tarea => {\n            htmlGenerado += `\n            <tr>\n                <td>${tarea.descripcion}</td>\n                <td>\n                    <select class=\"estado-selector\" onchange=\"actualizarColor(this)\">\n                        <option value=\"estado-blanco\" ${!tarea.estado || tarea.estado === 'n/a' ? 'selected' : ''}>N/A</option>\n                        <option value=\"estado-hecho\" ${tarea.estado === 'hecho' ? 'selected' : ''}>Hecho</option>\n                        <option value=\"estado-revisar\" ${tarea.estado === 'revisar' ? 'selected' : ''}>A Revisar</option>\n                        <option value=\"estado-pendiente\" ${tarea.estado === 'pendiente' ? 'selected' : ''}>Pendiente</option>\n                    </select>\n                </td>\n                <td>\n                    <div class=\"notas-editables\" contenteditable=\"true\" data-placeholder=\"Escribir notas...\"></div>\n                </td>\n            </tr>`;\n        });\n        htmlGenerado += `\n            </tbody>\n        </table>\n        `;\n    });\n}\nplantillaHTML = plantillaHTML.replace('{{proyecto}}', datosIA.proyecto || '')\n                             .replace('{{version_periodo}}', datosIA.version_periodo || '')\n                             .replace('{{fecha_revision}}', datosIA.fecha_revision || '')\n                             .replace('{{secciones_html}}', htmlGenerado);\n\nreturn { json: { proyecto: datosIA.proyecto || 'Other', html_final: plantillaHTML } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1056,
+        -64
+      ],
+      "id": "3ad84601-a078-41ba-bc04-9c9479a80d3f",
+      "name": "Reemplazar En Plantilla"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "VSk7KnjvDpFXT6jr",
+          "mode": "list",
+          "cachedResultName": "Paths",
+          "cachedResultUrl": "/projects/T20JtYs8XxkffyAg/datatables/VSk7KnjvDpFXT6jr"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "name",
+              "keyValue": "InformesTrabajo"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        864,
+        -64
+      ],
+      "id": "2ef0b74f-4f69-479a-8b0e-18d0941664ba",
+      "name": "ObtenerRutaArchivo"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Extraer HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Guardar En Disco",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer HTML": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generar Reporte": {
+      "main": [
+        [
+          {
+            "node": "ObtenerRutaArchivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Generar Reporte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reemplazar En Plantilla": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ObtenerRutaArchivo": {
+      "main": [
+        [
+          {
+            "node": "Reemplazar En Plantilla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f1b87f3e-83d6-4936-9b6d-b15bf8a9234b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f19f9d0621df993efafa63a7ce058f5720735ca87ab4cbc374ffbad079de7d3a"
+  },
+  "id": "fa3vllSVXIxgH1Ne",
+  "tags": []
+}

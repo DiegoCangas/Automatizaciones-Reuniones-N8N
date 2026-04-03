@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Informe de Revisiones</title>
+    <style>
+        /* Reset básico */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body { 
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
+            line-height: 1.6; 
+            color: #333333; 
+            background-color: #cfd0ea; 
+            padding: 40px 20px; 
+        }
+
+        /* --- BOTÓN DE DESCARGA --- */
+        .acciones-pantalla { text-align: center; margin-bottom: 25px; }
+        .btn-descargar {
+            background-color: #d04b49; color: #ffffff; border: none;
+            padding: 12px 24px; font-size: 15px; font-weight: 600;
+            border-radius: 6px; cursor: pointer; transition: 0.3s;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            box-shadow: 0 4px 6px rgba(204, 0, 0, 0.2);
+        }
+        .btn-descargar:hover { background-color: #a30000; transform: translateY(-2px); }
+
+        /* --- CONTENEDOR PRINCIPAL --- */
+        .documento {
+            background-color: #ffffff; max-width: 850px; margin: 0 auto;
+            padding: 0px 60px 50px 60px; border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        }
+        
+        /* --- CABECERA --- */
+        .header {
+            display: flex; align-items: flex-end; justify-content: space-between;
+            border-bottom: 2px solid #cc0000; padding-bottom: 5px; margin-bottom: 20px;
+        }
+        .logo { max-width: 130px; object-fit: cover; aspect-ratio: 4 / 3; }
+        .header h1 { color: #333333; font-size: 26px; font-weight: 700; text-align: right; text-transform: uppercase; }
+
+        /* --- META INFO --- */
+        .meta-info { 
+            display: flex; flex-wrap: wrap; gap: 20px; background: #f8f9fa; 
+            padding: 15px 25px; border-left: 4px solid #cc0000; 
+            border-radius: 4px; margin-bottom: 35px; 
+        }
+        .meta-info p { font-size: 15px; font-weight: 600; color: #444444; margin-right: 30px; }
+        .meta-info span { font-weight: 400; color: #333333; }
+
+        /* --- TIPOGRAFÍA Y TABLAS --- */
+        h2 { 
+            color: #cc0000; font-size: 16px; font-weight: 600;
+            margin-top: 35px; margin-bottom: 15px; text-transform: uppercase;
+            border-bottom: 1px solid #eeeeee; padding-bottom: 8px;
+        }
+        p, div { margin-bottom: 15px; font-size: 15px; }
+        
+        table { 
+            width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 30px;
+            border-radius: 6px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+        }
+        th, td { padding: 14px 20px; text-align: left; vertical-align: top; }
+        th { background-color: #333333; color: #ffffff; font-weight: 600; font-size: 14px; text-transform: uppercase; }
+        td { background-color: #ffffff; border-bottom: 1px solid #eeeeee; font-size: 15px; }
+        tr:last-child td { border-bottom: none; }
+        tbody tr:nth-child(even) td { background-color: #fcfcfc; } /* Gris super claro para no interferir con las notas */
+
+        /* --- ELEMENTOS INTERACTIVOS (Selectores y Notas) --- */
+        .estado-selector {
+            width: 100px; padding: 6px 8px; border-radius: 4px; font-size: 14px; font-weight: 600;
+            border: 1px solid #ccc; cursor: pointer; outline: none; appearance: none;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23333%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat; background-position: right 10px top 50%; background-size: 10px auto;
+            transition: all 0.2s ease;
+        }
+        
+        /* Colores dinámicos para los selectores */
+        .estado-blanco { background-color: #f0f0f0; color: #555; border-color: #ddd; }
+        .estado-hecho { background-color: #d4edda; color: #155724; border-color: #c3e6cb; }
+        .estado-revisar { background-color: #fff3cd; color: #856404; border-color: #ffeeba; }
+        .estado-pendiente { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
+
+        .notas-editables {
+            width: 100%; min-height: 30px; padding: 4px;
+            outline: none; transition: background-color 0.2s;
+            border-bottom: 1px dashed transparent;
+        }
+        .notas-editables:empty:before { content: attr(data-placeholder); color: #a0a0a0; font-style: italic; }
+        .notas-editables:focus { border-bottom: 1px dashed #cc0000; background-color: #fff9f9; }
+
+        /* --- AJUSTES DE IMPRESIÓN (PDF) --- */
+        @media print {
+            .acciones-pantalla { display: none !important; }
+            @page { margin: 15mm; }
+            body { background-color: #fff; padding: 0; }
+            
+            .documento { 
+                box-shadow: none; max-width: 100%; 
+                padding: 40px 50px !important; 
+                outline-offset: -12px; 
+                border-radius: 0 !important; 
+            }
+
+            /* Forzamos a que se impriman los fondos de color de los selectores */
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            /* Quitamos la flecha del selector y el borde al imprimir para que parezca un "badge" normal */
+            .estado-selector {
+                appearance: none; background-image: none; border: none; padding: 4px 8px;
+            }
+
+            /* Ocultamos el placeholder si está vacío al imprimir */
+            .notas-editables:empty:before { content: ""; }
+            .notas-editables { border: none !important; background-color: transparent !important; }
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="acciones-pantalla">
+        <button class="btn-descargar" onclick="window.print()">Descargar como PDF</button>
+    </div>
+
+    <div class="documento">
+        <div class="header">
+            <img src="" alt="Logo" class="logo">
+            <h1>Revisión del Trabajo Realizado</h1>
+        </div>
+
+        <div class="meta-info">
+            <p>Proyecto: <span>{{proyecto}}</span></p>
+            <p>Versión / Periodo: <span>{{version_periodo}}</span></p>
+            <p>Fecha de revisión: <span>{{fecha_revision}}</span></p>
+        </div>
+
+        {{secciones_html}}
+
+        </div>
+
+    <script>
+        // Función original para cambiar los colores del selector
+        function actualizarColor(selectElement) {
+            selectElement.classList.remove('estado-blanco', 'estado-hecho', 'estado-revisar', 'estado-pendiente');
+            if (selectElement.value) {
+                selectElement.classList.add(selectElement.value);
+            }
+        }
+
+        // Lógica de Persistencia con LocalStorage
+        document.addEventListener("DOMContentLoaded", function() {
+            
+            // 1. Capturamos el nombre del proyecto para crear claves únicas en localStorage
+            // Esto evita que las notas del 'Proyecto A' sobreescriban las del 'Proyecto B'
+            const spanProyecto = document.querySelector('.meta-info p:nth-child(1) span');
+            const prefijo = spanProyecto ? spanProyecto.innerText.trim().replace(/[^a-zA-Z0-9]/g, '_') : 'proyecto_default';
+
+            // 2. Guardar y recuperar Selectores de Estado
+            const selectores = document.querySelectorAll('.estado-selector');
+            selectores.forEach((select, index) => {
+                const key = `${prefijo}_selector_${index}`;
+
+                // Recuperar dato si existe
+                const valorGuardado = localStorage.getItem(key);
+                if (valorGuardado) {
+                    select.value = valorGuardado;
+                    actualizarColor(select); 
+                } else {
+                    actualizarColor(select); // Asegura que tenga el color inicial correcto
+                }
+
+                // Evento para guardar cada vez que el usuario cambie la opción
+                select.addEventListener('change', function() {
+                    localStorage.setItem(key, this.value);
+                    actualizarColor(this);
+                });
+            });
+
+            // 3. Guardar y recuperar Notas Editables
+            // (Asegúrate de que la IA añada contenteditable="true" a estos divs)
+            const notas = document.querySelectorAll('.notas-editables');
+            notas.forEach((nota, index) => {
+                const key = `${prefijo}_nota_${index}`;
+
+                // Recuperar dato si existe
+                const valorGuardado = localStorage.getItem(key);
+                if (valorGuardado !== null) {
+                    nota.innerHTML = valorGuardado;
+                }
+
+                // Evento para guardar cada vez que el usuario escriba algo
+                // 'input' detecta los cambios en tiempo real dentro de un contenteditable
+                nota.addEventListener('input', function() {
+                    localStorage.setItem(key, this.innerHTML);
+                });
+            });
+        });
+    </script>
+    
+</body>
+</html>
